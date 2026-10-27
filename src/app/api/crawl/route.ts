@@ -3,6 +3,7 @@ import { capturePage } from "@/lib/offline";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import JSZip from "jszip";
+import { validatePublicUrl } from "@/lib/url-safety";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,20 +20,15 @@ async function packShared(zip: JSZip, root: string, htmlName: string) {
     if (!zip.file(name)) zip.file(name, await fs.readFile(path.join(assetsDir, entry.name)));
   }
 }
-function validate(raw: unknown): string {
-  if (typeof raw !== "string" || raw.length > 2048) throw new Error("URL không hợp lệ.");
-  const url = new URL(raw);
-  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) throw new Error("Chỉ chấp nhận URL HTTP/HTTPS.");
-  return url.href;
-}
 export async function POST(request: NextRequest) {
-  // Local-only: public deployment requires authentication, SSRF protection and network egress controls.
-  if (process.env.NODE_ENV !== "development") return NextResponse.json({ error: "API chỉ bật khi chạy npm run dev trên localhost." }, { status: 403 });
+  // Optional shared secret: set CRAWLER_API_KEY on the host to restrict public access.
+  if (process.env.CRAWLER_API_KEY && request.headers.get("x-crawler-key") !== process.env.CRAWLER_API_KEY) return NextResponse.json({ error: "Không có quyền sử dụng API." }, { status: 401 });
   const folders: string[] = [];
   try {
     const body = await request.json();
     const multi = Array.isArray(body?.urls);
-    const urls: string[] = multi ? body.urls.map(validate) : [validate(body?.url)];
+    const inputs: unknown[] = multi ? body.urls : [body?.url];
+    const urls: string[] = await Promise.all(inputs.map(validatePublicUrl));
     if (urls.length < 1 || urls.length > 3) return NextResponse.json({ error: "Chỉ cho phép 1–3 URL mỗi lần." }, { status: 400 });
     const zip = new JSZip();
     const manifest: { url: string; folder: string; error?: string }[] = [];

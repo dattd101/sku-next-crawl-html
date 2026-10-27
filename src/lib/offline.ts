@@ -1,4 +1,6 @@
-import { chromium, type Response } from "playwright";
+import { chromium, type Response } from "playwright-core";
+import serverlessChromium from "@sparticuz/chromium";
+import { validatePublicUrl } from "./url-safety";
 import * as cheerio from "cheerio";
 import { createHash, randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
@@ -38,14 +40,21 @@ export async function capturePage(input: string) {
   const started = Date.now();
   const deadline = started + CAPTURE_MS;
   try {
-    browser = await chromium.launch({ headless: true, timeout: 12000 });
+    browser = await chromium.launch(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME ? {
+      headless: true, timeout: 20000,
+      executablePath: await serverlessChromium.executablePath(),
+      args: serverlessChromium.args,
+    } : { headless: true, timeout: 12000 });
     const context = await browser.newContext({ serviceWorkers: "block", acceptDownloads: false });
     const page = await context.newPage();
     page.setDefaultNavigationTimeout(15000);
     page.setDefaultTimeout(5000);
     await page.route("**/*", async route => {
       try {
-        const u = new URL(route.request().url());
+        const target = route.request().url();
+        if (!/^https?:/i.test(target)) { await route.abort(); return; }
+        await validatePublicUrl(target);
+        const u = new URL(target);
         if (BLOCKED.some(h => u.hostname === h || u.hostname.endsWith(`.${h}`))) {
           await route.abort(); return;
         }

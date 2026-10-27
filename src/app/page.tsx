@@ -70,11 +70,11 @@ export default function Home() {
           </div> : <div className="mb-4">
             <label htmlFor="urls" className="form-label fw-semibold">Danh sách URL (mỗi dòng một URL)</label>
             <textarea id="urls" className="form-control" rows={6} placeholder={"https://example.com/\nhttps://example.org/"} required value={urls} onChange={e => setUrls(e.target.value)} disabled={loading} />
-            <div className="form-text">{parsed.length}/{MAX_URLS} URL · Xử lý lần lượt · Mỗi trang trong một thư mục riêng.</div>
+            <div className="form-text">{parsed.length}/{MAX_URLS} URL · Xử lý lần lượt · Mỗi trang là một file HTML, dùng chung thư mục assets/.</div>
           </div>}
           <div className="result-box p-3 mb-4">
             <div className="fw-semibold mb-1">Kết quả: {mode === "single" ? "offline-page.zip" : "offline-sites.zip"}</div>
-            <div className="small muted-note">Bao gồm index.html, thư mục assets và manifest.json. Dữ liệu tạm được lưu dưới thư mục path-html và tự xóa sau khi đóng gói.</div>
+            <div className="small muted-note">Bao gồm các file HTML, một thư mục assets/ dùng chung và crawl-manifest.json.</div>
           </div>
           <button className="btn btn-primary btn-lg w-100 fw-semibold" type="submit" disabled={loading || (mode === "single" ? !url.trim() : parsed.length < 1 || parsed.length > MAX_URLS)}>
             {loading ? <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true"/>Đang crawl và tạo ZIP…</> : "Crawl & Download ZIP"}

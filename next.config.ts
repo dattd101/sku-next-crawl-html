@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.226.1"],
-};
+
+const nextConfig: NextConfig = { serverExternalPackages: ["@sparticuz/chromium", "playwright-core"] };
 export default nextConfig;
