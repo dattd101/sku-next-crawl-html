@@ -1,0 +1,6 @@
+node_modules/
+.next/
+path-html/
+*.zip
+.env*
+!.env.example
