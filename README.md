@@ -20,3 +20,7 @@ npm run dev
 Để hạn chế truy cập API công khai, có thể đặt biến môi trường `CRAWLER_API_KEY` và gửi header `x-crawler-key` từ client đáng tin cậy. **Không đưa khóa bí mật vào frontend công khai**; cần triển khai đăng nhập/proxy riêng nếu muốn bảo vệ giao diện.
 
 URL được lọc để từ chối IP nội bộ; production nên bổ sung bảo vệ mạng egress và rate limiting tại hạ tầng.
+
+
+## Cloudflare / WAF
+Crawler detects common Cloudflare challenge/block pages and returns an error instead of exporting them. The UI can open the target in a separate browser popup for manual access, but the browser session/cookies are **not** transferred to Vercel. Cloudflare clearance is often bound to IP/browser. No guaranteed bypass is implemented.

@@ -100,6 +100,15 @@ export async function capturePage(input: string) {
     await page.waitForTimeout(500);
     finalUrl = page.url();
     capturedHtml = await page.content();
+    // Never export a WAF / Cloudflare verification screen as if it were the site.
+    const title = await page.title().catch(() => "");
+    const bodyText = await page.locator("body").innerText({ timeout: 2500 }).catch(() => "");
+    const challenge = /just a moment|attention required|sorry, you have been blocked|performing security verification|checking your browser|verify you are human|you are unable to access/i.test(`${title}\n${bodyText.slice(0, 6000)}`)
+      || /\/cdn-cgi\/challenge-platform\//i.test(finalUrl)
+      || /cf-chl-|challenge-platform|cf-turnstile/i.test(capturedHtml.slice(0, 30000));
+    if (challenge) {
+      throw new Error("CLOUDFLARE_CHALLENGE: Website yêu cầu xác minh hoặc đã chặn IP của Vercel. Không thể dùng cookie từ popup Chrome để tự động xác minh phiên Playwright trên server.");
+    }
     // Do not wait forever for ad streams or pending network responses.
     await Promise.race([
       Promise.allSettled([...pending]),

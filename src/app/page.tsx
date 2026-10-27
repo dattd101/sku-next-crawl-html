@@ -11,17 +11,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [blocked, setBlocked] = useState(false);
   const parsed = urls.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
 
   function switchMode(next: Mode) {
     if (loading) return;
-    setMode(next); setError(""); setSuccess("");
+    setMode(next); setError(""); setSuccess(""); setBlocked(false);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (loading) return;
-    setError(""); setSuccess("");
+    setError(""); setSuccess(""); setBlocked(false);
     if (mode === "multi" && (parsed.length === 0 || parsed.length > MAX_URLS)) {
       setError(`Vui lòng nhập từ 1 đến ${MAX_URLS} URL.`); return;
     }
@@ -46,7 +47,9 @@ export default function Home() {
       window.setTimeout(() => URL.revokeObjectURL(href), 10000);
       setSuccess(mode === "multi" ? "Đã tạo ZIP. Mở site-01.html, site-02.html… trong thư mục giải nén; tất cả dùng chung assets/." : "Đã tạo ZIP. Giải nén và mở index.html để xem trang đã lưu.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Có lỗi xảy ra khi crawl.");
+      const message = err instanceof Error ? err.message : "Có lỗi xảy ra khi crawl.";
+      setBlocked(message.includes("CLOUDFLARE_CHALLENGE"));
+      setError(message.replace(/^CLOUDFLARE_CHALLENGE:\s*/, ""));
     } finally { setLoading(false); }
   }
 
@@ -80,6 +83,11 @@ export default function Home() {
             {loading ? <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true"/>Đang crawl và tạo ZIP…</> : "Crawl & Download ZIP"}
           </button>
           {error && <div role="alert" className="alert alert-danger mt-4 mb-0">{error}</div>}
+          {blocked && mode === "single" && <div className="alert alert-warning mt-3" role="status">
+            <strong>Xác minh thủ công</strong>
+            <p className="mb-2 mt-2">Mở website trong cửa sổ Chrome mới để tự xác minh. Sau đó có thể thử crawl lại. Lưu ý: phiên Chrome của bạn không được chia sẻ với Playwright trên Vercel; việc xác minh không đảm bảo crawl thành công.</p>
+            <button type="button" className="btn btn-outline-dark" onClick={() => { try { const target = new URL(url); if (!["http:", "https:"].includes(target.protocol)) return; window.open(target.href, "_blank", "popup=yes,width=1100,height=800,noopener,noreferrer"); } catch { setError("URL không hợp lệ."); } }}>Mở cửa sổ xác minh ↗</button>
+          </div>}
           {success && <div role="status" className="alert alert-success mt-4 mb-0">{success}</div>}
         </form>
       </div>
